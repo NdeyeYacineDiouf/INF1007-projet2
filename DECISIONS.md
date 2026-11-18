@@ -1,2 +1,7 @@
-| Choix | Options envisagées | Choix retenu et justification | Validé par l'auxiliaire (date) |
-| ----- | ------------------ | ----------------------------- | ------------------------------ |
+| Choix                   | Options envisagées                                       | Choix retenu et justification                                                                                                  | Validé par l'auxiliaire (date) |
+| ----------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------ |
+| Domaine                 | Assurance médicale, consommation de véhicules, ormeaux   | Assurance médicale : résultats intuitifs, faciles à expliquer                                                                  |                                |
+| Jeu de données          | Medical Cost, ormeaux (UCI), véhicules (Gouv. du Canada) | Medical Cost (Kaggle) : 1 338 lignes, 6 colonnes d'entrée numériques et catégorielles, licence DbCL, aucune donnée personnelle |                                |
+| Cible et métrique       |                                                          | Cible charges ; R² et RMSE sur l'ensemble de test, référence = la moyenne                                                      |                                |
+| Modèle                  | Régression linéaire, arbre de décision                   | Régression linéaire : facile à interpréter                                                                                     |                                |
+| Technologie d'interface | Tkinter, Gradio, Streamlit                               | Streamlit : peu de code, vu en cours (st.pyplot)                                                                               |                                |
