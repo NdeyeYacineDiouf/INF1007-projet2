@@ -128,6 +128,16 @@ def construire_metadonnees(donnees: pd.DataFrame, colonnes: list, metriques: dic
         "metriques": metriques,
     }            
 
+def sauvegarder_modele(modele: LinearRegression, metadonnees: dict, dossier: str) -> None:
+    """Enregistre le modèle (joblib) et ses métadonnées (JSON) dans un dossier.
+    Reçoit : le modèle entraîné, le dictionnaire de métadonnées et le dossier.
+    Ne renvoie rien : crée le dossier au besoin et écrit les deux fichiers.
+    """
+    os.makedirs(dossier, exist_ok=True)
+    joblib.dump(modele, os.path.join(dossier, NOM_MODELE))
+    with open(os.path.join(dossier, NOM_METADONNEES), "w", encoding="utf-8") as fichier:
+        json.dump(metadonnees, fichier, ensure_ascii=False, indent=2)
+
 if __name__ == "__main__":
     import os
     from src.donnees import charger_donnees, nettoyer_donnees
