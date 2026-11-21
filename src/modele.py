@@ -2,6 +2,9 @@ import pandas as pd
 import numpy as np
 import functools
 import time
+import json
+import os
+import joblib
 from sklearn.model_selection import train_test_split
 from src.exceptions import DonneeInvalideError
 from sklearn.linear_model import LinearRegression
@@ -10,7 +13,9 @@ COLONNE_CIBLE = "charges"
 COLONNES_CATEGORIELLES = ["sex", "smoker", "region"]
 GRAINE = 42
 PROPORTION_TEST = 0.2
-
+COLONNES_NUMERIQUES = ["age", "bmi", "children"]
+NOM_MODELE = "modele.joblib"
+NOM_METADONNEES = "metadonnees.json"
 
 def encoder_categories(entrees: pd.DataFrame) -> pd.DataFrame:
     """Remplace chaque colonne catégorielle par des colonnes de 0 et de 1.
