@@ -50,10 +50,14 @@ def calculer_r2(reel: np.ndarray, predit: np.ndarray) -> float:
     Reçoit : les vraies valeurs et les valeurs prédites, de même longueur.
     Renvoie : 1 pour une prédiction parfaite, 0 pour une prédiction aussi
     mauvaise que la moyenne, négatif si elle est pire.
+    Lève DonneeInvalideError si toutes les vraies valeurs sont identiques
+    (le R² n'est pas défini dans ce cas).
     """
     reel = np.asarray(reel)
     erreurs = np.sum((reel - np.asarray(predit)) ** 2)
     ecarts = np.sum((reel - np.mean(reel)) ** 2)
+    if ecarts == 0:
+        raise DonneeInvalideError("R² indéfini : toutes les valeurs réelles sont égales.")
     return float(1 - erreurs / ecarts)
 
 

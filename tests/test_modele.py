@@ -76,8 +76,17 @@ def test_metriques_comme_sklearn() -> None:
 
 
 def test_reference_moyenne() -> None:
-    """La référence prédit la moyenne de l'entraînement : ici 2, donc RMSE nul.
-    Ne reçoit rien. Renvoie : rien, échoue si le RMSE n'est pas nul.
+    """La référence prédit la moyenne de l'entraînement (2) : RMSE 1 et R² 0.
+    Ne reçoit rien. Renvoie : rien, échoue si une valeur est fausse.
     """
-    resultat = evaluer_reference([1.0, 2.0, 3.0], [2.0, 2.0])
-    assert resultat["rmse"] == pytest.approx(0.0)
+    resultat = evaluer_reference([1.0, 2.0, 3.0], [1.0, 3.0])
+    assert resultat["rmse"] == pytest.approx(1.0)
+    assert resultat["r2"] == pytest.approx(0.0)
+
+
+def test_r2_valeurs_identiques() -> None:
+    """Un R² sur des valeurs réelles toutes égales lève DonneeInvalideError.
+    Ne reçoit rien. Renvoie : rien, échoue si l'exception n'est pas levée.
+    """
+    with pytest.raises(DonneeInvalideError):
+        calculer_r2([2.0, 2.0], [2.0, 3.0])
