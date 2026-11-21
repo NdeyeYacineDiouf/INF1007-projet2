@@ -155,6 +155,73 @@ def charger_modele(dossier: str) -> tuple:
         raise DonneeInvalideError("Le fichier de métadonnées est abîmé.") from erreur
     return modele, metadonnees
 
+class Modele:
+    """Modèle entraîné et ses métadonnées, prêt à prédire.
+    L'interface s'en sert sans connaître scikit-learn.
+    """
+
+    def __init__(self, modele: LinearRegression, metadonnees: dict) -> None:
+        self._modele = modele
+        self._metadonnees = metadonnees
+
+    @classmethod
+    def depuis_dossier(cls, dossier: str) -> "Modele":
+        """Charge le modèle sauvegardé et ses métadonnées.
+        Reçoit : le dossier écrit par sauvegarder_modele.
+        Renvoie : un objet Modele.
+        Lève DonneeInvalideError si les fichiers sont absents ou abîmés.
+        """
+        modele, metadonnees = charger_modele(dossier)
+        return cls(modele, metadonnees)
+
+    @property
+    def metadonnees(self) -> dict:
+        """Métadonnées du modèle (colonnes, catégories, intervalles, métriques)."""
+        return self._metadonnees
+
+    @property
+    def rmse(self) -> float:
+        """Erreur typique du modèle sur le test, en dollars."""
+        try:
+            return float(self._metadonnees["metriques"]["regression"]["rmse"])
+        except KeyError as erreur:
+            raise DonneeInvalideError("Le RMSE est absent des métadonnées.") from erreur
+
+    def predire(self, saisies: dict) -> float:
+        """Prédit les frais annuels à partir de saisies déjà validées.
+        Reçoit : un dictionnaire {nom de variable: valeur}, par exemple
+        {"age": 35.0, "sex": "male", "smoker": "yes", ...}.
+        Renvoie : les frais prédits en dollars, jamais négatifs.
+        Lève DonneeInvalideError si une variable est absente des saisies.
+        """
+        valeurs = []
+        colonnes = self._metadonnees["colonnes"]
+        try:
+            for colonne in colonnes:
+                if colonne in saisies:
+                    valeurs.append(float(saisies[colonne]))
+                elif "_" in colonne:
+                    nom, categorie = colonne.split("_", 1)
+                    valeurs.append(1.0 if saisies[nom] == categorie else 0.0)
+                else:
+                    raise DonneeInvalideError(f"Saisie manquante : {colonne}")
+        except KeyError as erreur:
+            raise DonneeInvalideError(f"Saisie manquante : {erreur}") from erreur
+        entrees = pd.DataFrame([valeurs], columns=colonnes)
+        return max(0.0, float(self._modele.predict(entrees)[0]))
+
+    def fourchette(self, prediction: float) -> tuple:
+        """Donne une fourchette autour d'une prédiction : ± le RMSE.
+        Reçoit : une prédiction en dollars.
+        Renvoie : le tuple (bas, haut), le bas ne descendant pas sous 0.
+        """
+        return max(0.0, prediction - self.rmse), prediction + self.rmse
+
+    def __str__(self) -> str:
+        return (f"Modèle linéaire ({len(self._metadonnees['colonnes'])} colonnes, "
+                f"RMSE {self.rmse:.0f} $)")
+
+
 if __name__ == "__main__":
     from src.donnees import charger_donnees, nettoyer_donnees
 

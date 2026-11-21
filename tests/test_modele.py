@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 from src.exceptions import DonneeInvalideError
 
-from src.modele import (calculer_r2,calculer_rmse,chronometrer,charger_modele,construire_metadonnees,encoder_categories,entrainer_modele,evaluer_modele,evaluer_reference,sauvegarder_modele,separer_donnees)
+from src.modele import (calculer_r2,calculer_rmse,chronometrer,charger_modele,construire_metadonnees,encoder_categories,entrainer_modele,evaluer_modele,evaluer_reference,sauvegarder_modele,separer_donnees, Modele)
 
 from sklearn.metrics import mean_squared_error, r2_score
 
@@ -169,3 +169,69 @@ def test_charger_json_abime(tmp_path) -> None:
         fichier.write("ceci n'est pas du json")
     with pytest.raises(DonneeInvalideError):
         charger_modele(str(tmp_path))
+
+METADONNEES_PETIT_MODELE = {
+    "colonnes": ["age", "smoker_yes"],
+    "metriques": {"regression": {"rmse": 50.0, "r2": 1.0}},
+}
+
+
+def creer_petit_modele() -> Modele:
+    """Crée un Modele entraîné sur frais = 10 x âge + 500 si fumeur.
+    Ne reçoit rien. Renvoie : un objet Modele avec RMSE 50.
+    """
+    entrees = pd.DataFrame({"age": [20.0, 30.0, 40.0, 50.0],
+                            "smoker_yes": [0.0, 1.0, 0.0, 1.0]})
+    cible = pd.Series([200.0, 800.0, 400.0, 1000.0])
+    return Modele(entrainer_modele(entrees, cible), METADONNEES_PETIT_MODELE)
+
+
+def test_predire() -> None:
+    """À 35 ans, le modèle prédit 850 pour un fumeur et 350 sinon.
+    Ne reçoit rien. Renvoie : rien, échoue si une prédiction est fausse.
+    """
+    modele = creer_petit_modele()
+    assert modele.predire({"age": 35.0, "smoker": "yes"}) == pytest.approx(850.0)
+    assert modele.predire({"age": 35.0, "smoker": "no"}) == pytest.approx(350.0)
+
+
+def test_predire_saisie_manquante() -> None:
+    """Sans la variable smoker, predire lève DonneeInvalideError.
+    Ne reçoit rien. Renvoie : rien, échoue si l'exception n'est pas levée.
+    """
+    with pytest.raises(DonneeInvalideError):
+        creer_petit_modele().predire({"age": 35.0})
+
+
+def test_predire_jamais_negatif() -> None:
+    """Une prédiction négative est ramenée à 0.
+    Ne reçoit rien. Renvoie : rien, échoue si la valeur est négative.
+    """
+    assert creer_petit_modele().predire({"age": -100.0, "smoker": "no"}) == pytest.approx(0.0)
+
+
+def test_fourchette() -> None:
+    """La fourchette vaut prédiction ± RMSE, avec un bas plancher à 0.
+    Ne reçoit rien. Renvoie : rien, échoue si une borne est fausse.
+    """
+    modele = creer_petit_modele()
+    assert modele.fourchette(850.0) == (pytest.approx(800.0), pytest.approx(900.0))
+    assert modele.fourchette(20.0) == (pytest.approx(0.0), pytest.approx(70.0))
+
+
+def test_depuis_dossier(tmp_path) -> None:
+    """Un Modele rechargé depuis le disque prédit comme l'original.
+    Reçoit : tmp_path, un dossier temporaire fourni par pytest.
+    Renvoie : rien, échoue si la prédiction a changé.
+    """
+    original = creer_petit_modele()
+    sauvegarder_modele(original._modele, METADONNEES_PETIT_MODELE, str(tmp_path))
+    recharge = Modele.depuis_dossier(str(tmp_path))
+    assert recharge.predire({"age": 35.0, "smoker": "yes"}) == pytest.approx(850.0)
+
+
+def test_texte_modele() -> None:
+    """__str__ résume le nombre de colonnes et le RMSE.
+    Ne reçoit rien. Renvoie : rien, échoue si le texte est faux.
+    """
+    assert str(creer_petit_modele()) == "Modèle linéaire (2 colonnes, RMSE 50 $)"
