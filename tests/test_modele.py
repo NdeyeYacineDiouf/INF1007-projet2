@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 import numpy as np
 from src.exceptions import DonneeInvalideError
-from src.modele import (calculer_r2, calculer_rmse, encoder_categories, evaluer_reference, separer_donnees, evaluer_modele, entrainer_modele)
+from src.modele import (calculer_r2, calculer_rmse, encoder_categories, evaluer_reference, separer_donnees, evaluer_modele, entrainer_modele, chronometrer)
 from sklearn.metrics import mean_squared_error, r2_score
 
 def creer_petit_jeu() -> pd.DataFrame:
@@ -108,3 +108,13 @@ def test_modele_predit_nouvelles_valeurs() -> None:
     entrees = pd.DataFrame({"x": [1.0, 2.0, 3.0, 4.0]})
     modele = entrainer_modele(entrees, pd.Series([2.0, 4.0, 6.0, 8.0]))
     assert modele.predict(pd.DataFrame({"x": [5.0]}))[0] == pytest.approx(10.0)
+
+def test_chronometrer_garde_le_resultat() -> None:
+    """Le décorateur ne change pas la valeur renvoyée par la fonction.
+    Ne reçoit rien. Renvoie : rien, échoue si le résultat est modifié.
+    """
+    @chronometrer
+    def additionner(a: int, b: int) -> int:
+        return a + b
+
+    assert additionner(2, 3) == 5

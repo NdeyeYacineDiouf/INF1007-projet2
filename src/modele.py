@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import functools
+import time
 from sklearn.model_selection import train_test_split
 from src.exceptions import DonneeInvalideError
 from sklearn.linear_model import LinearRegression
@@ -71,6 +73,20 @@ def evaluer_reference(cible_entrainement, cible_test) -> dict:
     return {"rmse": calculer_rmse(cible_test, predit),
             "r2": calculer_r2(cible_test, predit)}
 
+def chronometrer(fonction):
+    """Décorateur : affiche le temps d'exécution de la fonction décorée.
+    Reçoit : la fonction à chronométrer.
+    Renvoie : une fonction qui fait la même chose et affiche sa durée.
+    """
+    @functools.wraps(fonction)
+    def enveloppe(*args, **kwargs):
+        debut = time.perf_counter()
+        resultat = fonction(*args, **kwargs)
+        print(f"{fonction.__name__} : {time.perf_counter() - debut:.3f} s")
+        return resultat
+    return enveloppe
+
+@chronometrer
 def entrainer_modele(entrees_entrainement, cible_entrainement) -> LinearRegression:
     """Entraîne une régression linéaire sur l'ensemble d'entraînement.
     Reçoit : les colonnes d'entrée encodées et les frais correspondants.
