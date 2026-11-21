@@ -34,7 +34,7 @@ def nettoyer_donnees(donnees: pd.DataFrame) -> pd.DataFrame:
 def graphique_histogramme_frais(donnees: pd.DataFrame, chemin: str) -> None:
     """Enregistre l'histogramme des frais médicaux annuels.
     Reçoit : le DataFrame nettoyé et le chemin du fichier image à créer.
-    Ne renvoie rien : écrit l'image sur le disque.
+    Renvoie : rien, écrit l'image sur le disque.
     """
     os.makedirs(os.path.dirname(chemin), exist_ok=True)
     fig, ax = plt.subplots()
@@ -49,7 +49,7 @@ def graphique_histogramme_frais(donnees: pd.DataFrame, chemin: str) -> None:
 def graphique_nuage_imc_frais(donnees: pd.DataFrame, chemin: str) -> None:
     """Enregistre le nuage de points IMC contre frais, coloré selon fumeur.
     Reçoit : le DataFrame nettoyé et le chemin du fichier image à créer.
-    Ne renvoie rien : écrit l'image sur le disque.
+    Renvoie : rien, écrit l'image sur le disque.
     """
     os.makedirs(os.path.dirname(chemin), exist_ok=True)
     fig, ax = plt.subplots()
