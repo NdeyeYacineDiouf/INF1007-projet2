@@ -111,6 +111,23 @@ def evaluer_modele(modele: LinearRegression, entrees_test, cible_test) -> dict:
     return {"rmse": calculer_rmse(cible_test, predit),
             "r2": calculer_r2(cible_test, predit)}
 
+def construire_metadonnees(donnees: pd.DataFrame, colonnes: list, metriques: dict) -> dict:
+    """Décrit le modèle pour que l'interface puisse se construire.
+    Reçoit : le DataFrame nettoyé, les noms des colonnes d'entrée encodées
+    (dans l'ordre vu par le modèle) et les métriques obtenues.
+    Renvoie : un dictionnaire avec les colonnes, les valeurs possibles de
+    chaque variable catégorielle, l'intervalle [min, max] de chaque variable
+    numérique et les métriques.
+    """
+    return {
+        "colonnes": list(colonnes),
+        "categories": {c: sorted(donnees[c].unique().tolist())
+                       for c in COLONNES_CATEGORIELLES},
+        "intervalles": {c: [float(donnees[c].min()), float(donnees[c].max())]
+                        for c in COLONNES_NUMERIQUES},
+        "metriques": metriques,
+    }            
+
 if __name__ == "__main__":
     import os
     from src.donnees import charger_donnees, nettoyer_donnees
