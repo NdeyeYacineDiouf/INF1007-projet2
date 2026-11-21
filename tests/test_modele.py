@@ -118,3 +118,32 @@ def test_chronometrer_garde_le_resultat() -> None:
         return a + b
 
     assert additionner(2, 3) == 5
+
+def entrainer_petit_modele():
+    """Entraîne un modèle sur y = 2x pour les tests de sauvegarde.
+    Ne reçoit rien. Renvoie : le modèle entraîné.
+    """
+    entrees = pd.DataFrame({"x": [1.0, 2.0, 3.0, 4.0]})
+    return entrainer_modele(entrees, pd.Series([2.0, 4.0, 6.0, 8.0]))
+
+
+def test_metadonnees() -> None:
+    """Les métadonnées contiennent les catégories triées et les intervalles.
+    Ne reçoit rien. Renvoie : rien, échoue si une valeur est fausse.
+    """
+    meta = construire_metadonnees(creer_petit_jeu(), ["age", "bmi"], {"rmse": 1.0})
+    assert meta["categories"]["sex"] == ["female", "male"]
+    assert meta["intervalles"]["age"] == [20.0, 29.0]
+    assert meta["colonnes"] == ["age", "bmi"]
+
+
+def test_sauvegarde_et_chargement(tmp_path) -> None:
+    """Un modèle rechargé donne les mêmes prédictions et les mêmes métadonnées.
+    Reçoit : tmp_path, un dossier temporaire fourni par pytest.
+    Renvoie : rien, échoue si le modèle ou le JSON a changé.
+    """
+    meta = {"colonnes": ["x"], "metriques": {"r2": 1.0}}
+    sauvegarder_modele(entrainer_petit_modele(), meta, str(tmp_path))
+    modele, meta_rechargees = charger_modele(str(tmp_path))
+    assert meta_rechargees == meta
+    assert modele.predict(pd.DataFrame({"x": [5.0]}))[0] == pytest.approx(10.0)
