@@ -1,6 +1,8 @@
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+import csv
+import datetime
 from src.exceptions import DonneeInvalideError
 from abc import ABC, abstractmethod
 
@@ -179,6 +181,53 @@ def creer_variables(metadonnees: dict) -> list:
                 nom, LIBELLES[nom], metadonnees["categories"][nom]))
     return variables
 
+CHEMIN_HISTORIQUE = os.path.join("historique", "predictions.csv")
+COLONNES_HISTORIQUE = ["date"] + ORDRE_VARIABLES + ["prediction"]
+
+
+def ajouter_prediction(chemin: str, saisies: dict, prediction: float) -> None:
+    """Ajoute une ligne à l'historique des prédictions (CSV).
+    Reçoit : le chemin du fichier, les saisies validées {nom: valeur} et la
+    prédiction en dollars. Crée le dossier et l'en-tête si le fichier est neuf.
+    Ne renvoie rien.
+    Lève DonneeInvalideError si une saisie manque ou si le fichier est illisible.
+    """
+    try:
+        ligne = ([datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")]
+                 + [saisies[nom] for nom in ORDRE_VARIABLES]
+                 + [round(prediction, 2)])
+        dossier = os.path.dirname(chemin)
+        if dossier:
+            os.makedirs(dossier, exist_ok=True)
+        nouveau = not os.path.exists(chemin)
+        with open(chemin, "a", newline="", encoding="utf-8") as fichier:
+            ecrivain = csv.writer(fichier)
+            if nouveau:
+                ecrivain.writerow(COLONNES_HISTORIQUE)
+            ecrivain.writerow(ligne)
+    except KeyError as erreur:
+        raise DonneeInvalideError(f"Saisie manquante : {erreur}") from erreur
+    except OSError as erreur:
+        raise DonneeInvalideError("Impossible d'écrire l'historique.") from erreur
+
+
+def lire_historique(chemin: str) -> pd.DataFrame:
+    """Relit l'historique des prédictions.
+    Reçoit : le chemin du fichier CSV.
+    Renvoie : un DataFrame, vide (mais avec les bonnes colonnes) si le fichier
+    n'existe pas encore.
+    Lève DonneeInvalideError si le fichier est abîmé ou n'a pas les bonnes colonnes.
+    """
+    if not os.path.exists(chemin):
+        return pd.DataFrame(columns=COLONNES_HISTORIQUE)
+    try:
+        with open(chemin, encoding="utf-8") as fichier:
+            historique = pd.read_csv(fichier)
+    except (pd.errors.ParserError, pd.errors.EmptyDataError, UnicodeDecodeError) as erreur:
+        raise DonneeInvalideError("Le fichier d'historique est abîmé.") from erreur
+    if list(historique.columns) != COLONNES_HISTORIQUE:
+        raise DonneeInvalideError("Le fichier d'historique n'a pas les bonnes colonnes.")
+    return historique
 
 if __name__ == "__main__":
     jeu = nettoyer_donnees(charger_donnees(os.path.join("donnees", "insurance.csv")))

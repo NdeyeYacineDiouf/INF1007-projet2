@@ -2,7 +2,7 @@ from pathlib import Path
 import pytest
 import pandas as pd
 
-from src.donnees import (Variable,VariableCategorielle,VariableNumerique,charger_donnees,creer_variables,nettoyer_donnees)
+from src.donnees import (Variable,VariableCategorielle,VariableNumerique,charger_donnees,creer_variables,nettoyer_donnees, COLONNES_HISTORIQUE, ajouter_prediction, lire_historique)
 from src.exceptions import DonneeInvalideError
 
 CSV_VALIDE = (
@@ -16,6 +16,10 @@ METADONNEES = {
     "categories": {"sex": ["female", "male"], "smoker": ["no", "yes"],
                    "region": ["northeast", "northwest"]},
 }
+
+SAISIES = {"age": 35.0, "sex": "male", "bmi": 28.5, "children": 2.0,
+           "smoker": "no", "region": "northwest"}
+
 
 def test_usuel(tmp_path: Path) -> None:
     """Un CSV valide est lu avec 2 lignes et 7 colonnes.
@@ -109,3 +113,59 @@ def test_texte_variable() -> None:
     Ne reçoit rien. Renvoie : rien, échoue si le texte est faux.
     """
     assert str(VariableNumerique("bmi", "IMC", 16, 53)) == "IMC (bmi)"
+
+def test_historique_absent(tmp_path: Path) -> None:
+    """Sans fichier, l'historique est vide mais a les bonnes colonnes.
+    Reçoit : tmp_path, un dossier temporaire fourni par pytest.
+    Renvoie : rien, échoue si le tableau n'est pas vide.
+    """
+    historique = lire_historique(str(tmp_path / "absent.csv"))
+    assert len(historique) == 0
+    assert list(historique.columns) == COLONNES_HISTORIQUE
+
+
+def test_historique_ajout(tmp_path: Path) -> None:
+    """Deux prédictions ajoutées sont relues dans l'ordre, dossier créé au besoin.
+    Reçoit : tmp_path, un dossier temporaire fourni par pytest.
+    Renvoie : rien, échoue si le contenu relu est faux.
+    """
+    chemin = str(tmp_path / "sous_dossier" / "h.csv")
+    ajouter_prediction(chemin, SAISIES, 7500.456)
+    ajouter_prediction(chemin, {**SAISIES, "age": 50.0}, 9000.0)
+    historique = lire_historique(chemin)
+    assert len(historique) == 2
+    assert historique["prediction"].iloc[0] == pytest.approx(7500.46)
+    assert historique["age"].iloc[1] == pytest.approx(50.0)
+
+
+def test_historique_saisie_manquante(tmp_path: Path) -> None:
+    """Une saisie manquante lève DonneeInvalideError et n'écrit rien.
+    Reçoit : tmp_path, un dossier temporaire fourni par pytest.
+    Renvoie : rien, échoue si l'exception n'est pas levée.
+    """
+    chemin = tmp_path / "h.csv"
+    with pytest.raises(DonneeInvalideError):
+        ajouter_prediction(str(chemin), {"age": 35.0}, 1000.0)
+    assert not chemin.exists()
+
+
+def test_historique_mauvaises_colonnes(tmp_path: Path) -> None:
+    """Un fichier sans les bonnes colonnes lève DonneeInvalideError.
+    Reçoit : tmp_path, un dossier temporaire fourni par pytest.
+    Renvoie : rien, échoue si l'exception n'est pas levée.
+    """
+    fichier = tmp_path / "h.csv"
+    fichier.write_text("a,b\n1,2\n", encoding="utf-8")
+    with pytest.raises(DonneeInvalideError):
+        lire_historique(str(fichier))
+
+
+def test_historique_vide_illisible(tmp_path: Path) -> None:
+    """Un fichier entièrement vide lève DonneeInvalideError.
+    Reçoit : tmp_path, un dossier temporaire fourni par pytest.
+    Renvoie : rien, échoue si l'exception n'est pas levée.
+    """
+    fichier = tmp_path / "h.csv"
+    fichier.write_text("", encoding="utf-8")
+    with pytest.raises(DonneeInvalideError):
+        lire_historique(str(fichier))
