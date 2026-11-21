@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 from src.exceptions import DonneeInvalideError
+from sklearn.linear_model import LinearRegression
 
 COLONNE_CIBLE = "charges"
 COLONNES_CATEGORIELLES = ["sex", "smoker", "region"]
@@ -70,6 +71,25 @@ def evaluer_reference(cible_entrainement, cible_test) -> dict:
     return {"rmse": calculer_rmse(cible_test, predit),
             "r2": calculer_r2(cible_test, predit)}
 
+def entrainer_modele(entrees_entrainement, cible_entrainement) -> LinearRegression:
+    """Entraîne une régression linéaire sur l'ensemble d'entraînement.
+    Reçoit : les colonnes d'entrée encodées et les frais correspondants.
+    Renvoie : le modèle entraîné.
+    """
+    modele = LinearRegression()
+    modele.fit(entrees_entrainement, cible_entrainement)
+    return modele
+
+
+def evaluer_modele(modele: LinearRegression, entrees_test, cible_test) -> dict:
+    """Évalue le modèle entraîné sur l'ensemble de test.
+    Reçoit : le modèle, les colonnes d'entrée du test et les frais du test.
+    Renvoie : un dictionnaire {"rmse": ..., "r2": ...}.
+    """
+    predit = modele.predict(entrees_test)
+    return {"rmse": calculer_rmse(cible_test, predit),
+            "r2": calculer_r2(cible_test, predit)}
+
 if __name__ == "__main__":
     import os
     from src.donnees import charger_donnees, nettoyer_donnees
@@ -77,3 +97,5 @@ if __name__ == "__main__":
     jeu = nettoyer_donnees(charger_donnees(os.path.join("donnees", "insurance.csv")))
     x_entr, x_test, y_entr, y_test = separer_donnees(jeu)
     print("Référence (moyenne) :", evaluer_reference(y_entr, y_test))
+    modele = entrainer_modele(x_entr, y_entr)
+    print("Régression linéaire :", evaluer_modele(modele, x_test, y_test))

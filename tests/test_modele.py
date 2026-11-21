@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 import numpy as np
 from src.exceptions import DonneeInvalideError
-from src.modele import (calculer_r2, calculer_rmse, encoder_categories, evaluer_reference, separer_donnees)
+from src.modele import (calculer_r2, calculer_rmse, encoder_categories, evaluer_reference, separer_donnees, evaluer_modele, entrainer_modele)
 from sklearn.metrics import mean_squared_error, r2_score
 
 def creer_petit_jeu() -> pd.DataFrame:
@@ -90,3 +90,21 @@ def test_r2_valeurs_identiques() -> None:
     """
     with pytest.raises(DonneeInvalideError):
         calculer_r2([2.0, 2.0], [2.0, 3.0])
+
+def test_regression_parfaite() -> None:
+    """Sur des données parfaitement linéaires (y = 2x), le R² vaut 1.
+    Ne reçoit rien. Renvoie : rien, échoue si le R² est différent de 1.
+    """
+    entrees = pd.DataFrame({"x": [1.0, 2.0, 3.0, 4.0]})
+    cible = pd.Series([2.0, 4.0, 6.0, 8.0])
+    modele = entrainer_modele(entrees, cible)
+    assert modele.coef_[0] == pytest.approx(2.0)
+    assert evaluer_modele(modele, entrees, cible)["r2"] == pytest.approx(1.0)
+
+def test_modele_predit_nouvelles_valeurs() -> None:
+    """Un modèle entraîné sur y = 2x prédit 10 pour x = 5.
+    Ne reçoit rien. Renvoie : rien, échoue si la prédiction est fausse.
+    """
+    entrees = pd.DataFrame({"x": [1.0, 2.0, 3.0, 4.0]})
+    modele = entrainer_modele(entrees, pd.Series([2.0, 4.0, 6.0, 8.0]))
+    assert modele.predict(pd.DataFrame({"x": [5.0]}))[0] == pytest.approx(10.0)
