@@ -37,6 +37,34 @@ def separer_donnees(donnees: pd.DataFrame):
     return train_test_split(entrees, cible, test_size=PROPORTION_TEST,
                             random_state=GRAINE)
 
+def calculer_rmse(reel: np.ndarray, predit: np.ndarray) -> float:
+    """Calcule l'erreur quadratique moyenne (RMSE), en dollars.
+    Reçoit : les vraies valeurs et les valeurs prédites, de même longueur.
+    Renvoie : la racine de la moyenne des carrés des erreurs.
+    """
+    return float(np.sqrt(np.mean((np.asarray(reel) - np.asarray(predit)) ** 2)))
+
+
+def calculer_r2(reel: np.ndarray, predit: np.ndarray) -> float:
+    """Calcule le coefficient de détermination R².
+    Reçoit : les vraies valeurs et les valeurs prédites, de même longueur.
+    Renvoie : 1 pour une prédiction parfaite, 0 pour une prédiction aussi
+    mauvaise que la moyenne, négatif si elle est pire.
+    """
+    reel = np.asarray(reel)
+    erreurs = np.sum((reel - np.asarray(predit)) ** 2)
+    ecarts = np.sum((reel - np.mean(reel)) ** 2)
+    return float(1 - erreurs / ecarts)
+
+
+def evaluer_reference(cible_entrainement, cible_test) -> dict:
+    """Évalue le modèle trivial qui prédit toujours la moyenne de l'entraînement.
+    Reçoit : les frais de l'ensemble d'entraînement et ceux du test.
+    Renvoie : un dictionnaire {"rmse": ..., "r2": ...} calculé sur le test.
+    """
+    predit = np.full(len(cible_test), np.mean(cible_entrainement))
+    return {"rmse": calculer_rmse(cible_test, predit),
+            "r2": calculer_r2(cible_test, predit)}
 
 if __name__ == "__main__":
     import os
@@ -44,5 +72,4 @@ if __name__ == "__main__":
 
     jeu = nettoyer_donnees(charger_donnees(os.path.join("donnees", "insurance.csv")))
     x_entr, x_test, y_entr, y_test = separer_donnees(jeu)
-    print("Entraînement :", x_entr.shape, "Test :", x_test.shape)
-    print("Colonnes :", list(x_entr.columns))
+    print("Référence (moyenne) :", evaluer_reference(y_entr, y_test))

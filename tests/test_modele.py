@@ -1,9 +1,9 @@
 import pandas as pd
 import pytest
-
+import numpy as np
 from src.exceptions import DonneeInvalideError
-from src.modele import encoder_categories, separer_donnees
-
+from src.modele import (calculer_r2, calculer_rmse, encoder_categories, evaluer_reference, separer_donnees)
+from sklearn.metrics import mean_squared_error, r2_score
 
 def creer_petit_jeu() -> pd.DataFrame:
     """Crée un petit DataFrame de 10 lignes qui imite le jeu d'assurance.
@@ -57,3 +57,27 @@ def test_cible_absente() -> None:
     donnees = creer_petit_jeu().drop(columns=["charges"])
     with pytest.raises(DonneeInvalideError):
         separer_donnees(donnees)
+
+def test_rmse() -> None:
+    """Le RMSE de [1, 2, 3] contre [1, 2, 5] vaut racine de 4/3.
+    Ne reçoit rien. Renvoie : rien, échoue si la valeur est fausse.
+    """
+    assert calculer_rmse([1, 2, 3], [1, 2, 5]) == pytest.approx(np.sqrt(4 / 3))
+
+
+def test_metriques_comme_sklearn() -> None:
+    """Nos métriques NumPy coïncident avec celles de scikit-learn.
+    Ne reçoit rien. Renvoie : rien, échoue si les valeurs diffèrent.
+    """
+    reel = np.array([3.0, 5.0, 2.0, 8.0])
+    predit = np.array([2.5, 5.5, 2.0, 7.0])
+    assert calculer_rmse(reel, predit) == pytest.approx(np.sqrt(mean_squared_error(reel, predit)))
+    assert calculer_r2(reel, predit) == pytest.approx(r2_score(reel, predit))
+
+
+def test_reference_moyenne() -> None:
+    """La référence prédit la moyenne de l'entraînement : ici 2, donc RMSE nul.
+    Ne reçoit rien. Renvoie : rien, échoue si le RMSE n'est pas nul.
+    """
+    resultat = evaluer_reference([1.0, 2.0, 3.0], [2.0, 2.0])
+    assert resultat["rmse"] == pytest.approx(0.0)
