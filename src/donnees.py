@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 from src.exceptions import DonneeInvalideError
+from abc import ABC, abstractmethod
 
 COLONNES = ["age", "sex", "bmi", "children", "smoker", "region", "charges"]
 
@@ -62,6 +63,121 @@ def graphique_nuage_imc_frais(donnees: pd.DataFrame, chemin: str) -> None:
     ax.legend()
     fig.savefig(chemin, dpi=150)
     plt.close(fig)
+
+ORDRE_VARIABLES = ["age", "sex", "bmi", "children", "smoker", "region"]
+LIBELLES = {"age": "Âge (années)", "sex": "Sexe", "bmi": "IMC",
+            "children": "Nombre d'enfants", "smoker": "Fumeur", "region": "Région"}
+
+
+class Variable(ABC):
+    """Variable d'entrée du modèle : classe parente abstraite.
+    Chaque classe enfant sait valider une saisie à sa façon.
+    """
+
+    def __init__(self, nom: str, libelle: str) -> None:
+        self._nom = nom
+        self._libelle = libelle
+
+    @property
+    def nom(self) -> str:
+        """Nom de la colonne dans le jeu de données."""
+        return self._nom
+
+    @property
+    def libelle(self) -> str:
+        """Texte affiché à l'utilisateur."""
+        return self._libelle
+
+    @abstractmethod
+    def valider(self, saisie: str):
+        """Vérifie une saisie et la convertit.
+        Reçoit : le texte saisi par l'utilisateur.
+        Renvoie : la valeur convertie.
+        Lève DonneeInvalideError si la saisie est refusée.
+        """
+
+    def __str__(self) -> str:
+        return f"{self._libelle} ({self._nom})"
+
+
+class VariableNumerique(Variable):
+    """Variable numérique, acceptée seulement dans un intervalle."""
+
+    def __init__(self, nom: str, libelle: str, minimum: float, maximum: float) -> None:
+        super().__init__(nom, libelle)
+        self._minimum = minimum
+        self._maximum = maximum
+
+    @property
+    def minimum(self) -> float:
+        """Plus petite valeur vue dans les données."""
+        return self._minimum
+
+    @property
+    def maximum(self) -> float:
+        """Plus grande valeur vue dans les données."""
+        return self._maximum
+
+    def valider(self, saisie: str) -> float:
+        """Vérifie que la saisie est un nombre dans l'intervalle.
+        Reçoit : le texte saisi (la virgule décimale est acceptée).
+        Renvoie : le nombre.
+        Lève DonneeInvalideError si la saisie est vide, n'est pas un nombre
+        ou sort de l'intervalle.
+        """
+        texte = str(saisie).strip().replace(",", ".")
+        if texte == "":
+            raise DonneeInvalideError(f"{self._libelle} : la saisie est vide.")
+        try:
+            valeur = float(texte)
+        except ValueError as erreur:
+            raise DonneeInvalideError(
+                f"{self._libelle} : « {texte} » n'est pas un nombre.") from erreur
+        if not self._minimum <= valeur <= self._maximum:
+            raise DonneeInvalideError(
+                f"{self._libelle} doit être entre {self._minimum:g} et {self._maximum:g}.")
+        return valeur
+
+
+class VariableCategorielle(Variable):
+    """Variable catégorielle, acceptée seulement parmi une liste de valeurs."""
+
+    def __init__(self, nom: str, libelle: str, valeurs: list) -> None:
+        super().__init__(nom, libelle)
+        self._valeurs = list(valeurs)
+
+    @property
+    def valeurs(self) -> list:
+        """Valeurs possibles, telles que vues dans les données."""
+        return list(self._valeurs)
+
+    def valider(self, saisie: str) -> str:
+        """Vérifie que la saisie fait partie des valeurs possibles.
+        Reçoit : le texte choisi.
+        Renvoie : la valeur choisie.
+        Lève DonneeInvalideError si la valeur est vide ou inconnue.
+        """
+        texte = str(saisie).strip()
+        if texte not in self._valeurs:
+            raise DonneeInvalideError(
+                f"{self._libelle} : choisissez parmi {', '.join(self._valeurs)}.")
+        return texte
+
+
+def creer_variables(metadonnees: dict) -> list:
+    """Construit la liste des variables d'entrée à partir des métadonnées.
+    Reçoit : le dictionnaire lu dans metadonnees.json.
+    Renvoie : une liste de Variable, dans l'ordre d'affichage.
+    """
+    variables = []
+    for nom in ORDRE_VARIABLES:
+        if nom in metadonnees["intervalles"]:
+            minimum, maximum = metadonnees["intervalles"][nom]
+            variables.append(VariableNumerique(nom, LIBELLES[nom], minimum, maximum))
+        else:
+            variables.append(VariableCategorielle(
+                nom, LIBELLES[nom], metadonnees["categories"][nom]))
+    return variables
 
 
 if __name__ == "__main__":
