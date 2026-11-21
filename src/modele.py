@@ -40,9 +40,9 @@ def separer_donnees(donnees: pd.DataFrame):
 
 if __name__ == "__main__":
     import os
-    from src.donnees import charger_donnees, supprimer_les_doublons
+    from src.donnees import charger_donnees, nettoyer_donnees
 
-    jeu = supprimer_les_doublons(charger_donnees(os.path.join("donnees", "insurance.csv")))
+    jeu = nettoyer_donnees(charger_donnees(os.path.join("donnees", "insurance.csv")))
     x_entr, x_test, y_entr, y_test = separer_donnees(jeu)
     print("Entraînement :", x_entr.shape, "Test :", x_test.shape)
     print("Colonnes :", list(x_entr.columns))
