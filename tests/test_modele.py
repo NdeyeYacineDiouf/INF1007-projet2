@@ -2,7 +2,9 @@ import pandas as pd
 import pytest
 import numpy as np
 from src.exceptions import DonneeInvalideError
-from src.modele import (calculer_r2, calculer_rmse, encoder_categories, evaluer_reference, separer_donnees, evaluer_modele, entrainer_modele, chronometrer, construire_metadonnees, charger_modele, sauvegarder_modele)
+
+from src.modele import (calculer_r2,calculer_rmse,chronometrer,charger_modele,construire_metadonnees,encoder_categories,entrainer_modele,evaluer_modele,evaluer_reference,sauvegarder_modele,separer_donnees)
+
 from sklearn.metrics import mean_squared_error, r2_score
 
 def creer_petit_jeu() -> pd.DataFrame:
