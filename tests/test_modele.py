@@ -31,3 +31,29 @@ def test_encodage() -> None:
     assert "sex_male" in resultat.columns
     assert "smoker_yes" in resultat.columns
     assert all(resultat.dtypes != object)
+    
+def test_tailles() -> None:
+    """Avec 10 lignes, le test en reçoit 2 et l'entraînement 8.
+    Ne reçoit rien. Renvoie : rien, échoue si les tailles sont fausses.
+    """
+    x_entr, x_test, y_entr, y_test = separer_donnees(creer_petit_jeu())
+    assert len(x_entr) == 8 and len(y_entr) == 8
+    assert len(x_test) == 2 and len(y_test) == 2
+
+
+def test_reproductible() -> None:
+    """Deux séparations successives donnent exactement les mêmes lignes.
+    Ne reçoit rien. Renvoie : rien, échoue si les résultats diffèrent.
+    """
+    premier = separer_donnees(creer_petit_jeu())
+    deuxieme = separer_donnees(creer_petit_jeu())
+    assert list(premier[1].index) == list(deuxieme[1].index)
+
+
+def test_cible_absente() -> None:
+    """Sans la colonne charges, la séparation lève DonneeInvalideError.
+    Ne reçoit rien. Renvoie : rien, échoue si l'exception n'est pas levée.
+    """
+    donnees = creer_petit_jeu().drop(columns=["charges"])
+    with pytest.raises(DonneeInvalideError):
+        separer_donnees(donnees)
