@@ -138,12 +138,35 @@ def sauvegarder_modele(modele: LinearRegression, metadonnees: dict, dossier: str
     with open(os.path.join(dossier, NOM_METADONNEES), "w", encoding="utf-8") as fichier:
         json.dump(metadonnees, fichier, ensure_ascii=False, indent=2)
 
+def charger_modele(dossier: str) -> tuple:
+    """Recharge le modèle et ses métadonnées sans ré-entraîner.
+    Reçoit : le dossier où sauvegarder_modele a écrit les fichiers.
+    Renvoie : le tuple (modele, metadonnees).
+    Lève DonneeInvalideError si un fichier est absent ou si le JSON est abîmé.
+    """
+    try:
+        modele = joblib.load(os.path.join(dossier, NOM_MODELE))
+        with open(os.path.join(dossier, NOM_METADONNEES), encoding="utf-8") as fichier:
+            metadonnees = json.load(fichier)
+    except FileNotFoundError as erreur:
+        raise DonneeInvalideError(
+            "Modèle introuvable : lancez d'abord python -m src.modele.") from erreur
+    except json.JSONDecodeError as erreur:
+        raise DonneeInvalideError("Le fichier de métadonnées est abîmé.") from erreur
+    return modele, metadonnees
+
 if __name__ == "__main__":
-    import os
     from src.donnees import charger_donnees, nettoyer_donnees
 
     jeu = nettoyer_donnees(charger_donnees(os.path.join("donnees", "insurance.csv")))
     x_entr, x_test, y_entr, y_test = separer_donnees(jeu)
-    print("Référence (moyenne) :", evaluer_reference(y_entr, y_test))
+    reference = evaluer_reference(y_entr, y_test)
+    print("Référence (moyenne) :", reference)
     modele = entrainer_modele(x_entr, y_entr)
+    resultat = evaluer_modele(modele, x_test, y_test)
+    print("Régression linéaire :", resultat)
+    metadonnees = construire_metadonnees(
+        jeu, list(x_entr.columns), {"reference": reference, "regression": resultat})
+    sauvegarder_modele(modele, metadonnees, "modeles")
+    print("Modèle sauvegardé dans modeles/")
     print("Régression linéaire :", evaluer_modele(modele, x_test, y_test))

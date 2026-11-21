@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 import numpy as np
 from src.exceptions import DonneeInvalideError
-from src.modele import (calculer_r2, calculer_rmse, encoder_categories, evaluer_reference, separer_donnees, evaluer_modele, entrainer_modele, chronometrer)
+from src.modele import (calculer_r2, calculer_rmse, encoder_categories, evaluer_reference, separer_donnees, evaluer_modele, entrainer_modele, chronometrer, construire_metadonnees, charger_modele, sauvegarder_modele)
 from sklearn.metrics import mean_squared_error, r2_score
 
 def creer_petit_jeu() -> pd.DataFrame:
@@ -147,3 +147,23 @@ def test_sauvegarde_et_chargement(tmp_path) -> None:
     modele, meta_rechargees = charger_modele(str(tmp_path))
     assert meta_rechargees == meta
     assert modele.predict(pd.DataFrame({"x": [5.0]}))[0] == pytest.approx(10.0)
+
+def test_charger_modele_absent(tmp_path) -> None:
+    """Un dossier sans fichiers lève DonneeInvalideError.
+    Reçoit : tmp_path, un dossier temporaire fourni par pytest.
+    Renvoie : rien, échoue si l'exception n'est pas levée.
+    """
+    with pytest.raises(DonneeInvalideError):
+        charger_modele(str(tmp_path))
+
+
+def test_charger_json_abime(tmp_path) -> None:
+    """Un JSON illisible lève DonneeInvalideError.
+    Reçoit : tmp_path, un dossier temporaire fourni par pytest.
+    Renvoie : rien, échoue si l'exception n'est pas levée.
+    """
+    sauvegarder_modele(entrainer_petit_modele(), {"colonnes": []}, str(tmp_path))
+    with open(tmp_path / "metadonnees.json", "w", encoding="utf-8") as fichier:
+        fichier.write("ceci n'est pas du json")
+    with pytest.raises(DonneeInvalideError):
+        charger_modele(str(tmp_path))
