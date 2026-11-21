@@ -1,8 +1,8 @@
 from pathlib import Path
 import pytest
 import pandas as pd
-
-from src.donnees import (Variable,VariableCategorielle,VariableNumerique,charger_donnees,creer_variables,nettoyer_donnees, COLONNES_HISTORIQUE, ajouter_prediction, lire_historique)
+import matplotlib.pyplot as plt
+from src.donnees import (Variable,VariableCategorielle,VariableNumerique,charger_donnees,creer_variables,nettoyer_donnees, COLONNES_HISTORIQUE, ajouter_prediction, lire_historique, graphique_prediction)
 from src.exceptions import DonneeInvalideError
 
 CSV_VALIDE = (
@@ -169,3 +169,25 @@ def test_historique_vide_illisible(tmp_path: Path) -> None:
     fichier.write_text("", encoding="utf-8")
     with pytest.raises(DonneeInvalideError):
         lire_historique(str(fichier))
+
+def test_graphique_prediction() -> None:
+    """La figure a un titre, des axes étiquetés et une légende à 3 entrées.
+    Ne reçoit rien. Renvoie : rien, échoue si un élément manque.
+    """
+    frais = pd.Series([1000.0, 5000.0, 9000.0, 20000.0])
+    fig = graphique_prediction(frais, 8000.0, (2000.0, 14000.0))
+    ax = fig.axes[0]
+    assert ax.get_title() != ""
+    assert ax.get_xlabel() != "" and ax.get_ylabel() != ""
+    assert len(ax.get_legend().get_texts()) == 3
+    plt.close(fig)
+
+
+def test_graphique_prediction_ne_cree_pas_de_fichier(tmp_path: Path) -> None:
+    """La fonction renvoie la figure sans rien écrire sur le disque.
+    Reçoit : tmp_path, un dossier temporaire fourni par pytest.
+    Renvoie : rien, échoue si un fichier est créé.
+    """
+    fig = graphique_prediction(pd.Series([1.0, 2.0, 3.0]), 2.0, (1.0, 3.0))
+    plt.close(fig)
+    assert list(tmp_path.iterdir()) == []

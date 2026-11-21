@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import csv
 import datetime
+from matplotlib.figure import Figure
 from src.exceptions import DonneeInvalideError
 from abc import ABC, abstractmethod
 
@@ -65,6 +66,26 @@ def graphique_nuage_imc_frais(donnees: pd.DataFrame, chemin: str) -> None:
     ax.legend()
     fig.savefig(chemin, dpi=150)
     plt.close(fig)
+
+def graphique_prediction(frais: pd.Series, prediction: float, fourchette: tuple) -> Figure:
+    """Construit l'histogramme des frais avec la prédiction et sa fourchette.
+    Reçoit : les frais réels du jeu de données, la prédiction en dollars et
+    la fourchette (bas, haut).
+    Renvoie : la figure Matplotlib, sans l'afficher (l'interface s'en charge).
+    """
+    bas, haut = fourchette
+    fig, ax = plt.subplots()
+    ax.hist(frais, bins=30, color="lightgray", edgecolor="white",
+            label="Frais observés")
+    ax.axvspan(bas, haut, alpha=0.25, color="tab:orange",
+               label=f"Fourchette ({bas:,.0f} $ à {haut:,.0f} $)")
+    ax.axvline(prediction, color="tab:red", linewidth=2,
+               label=f"Prédiction ({prediction:,.0f} $)")
+    ax.set_title("Où se situe votre prédiction parmi les frais observés")
+    ax.set_xlabel("Frais annuels ($)")
+    ax.set_ylabel("Nombre de personnes")
+    ax.legend()
+    return fig
 
 ORDRE_VARIABLES = ["age", "sex", "bmi", "children", "smoker", "region"]
 LIBELLES = {"age": "Âge (années)", "sex": "Sexe", "bmi": "IMC",
